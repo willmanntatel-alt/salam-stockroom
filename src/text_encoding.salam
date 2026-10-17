@@ -1,0 +1,41 @@
+package text_encoding
+
+func ByteAt(text: str, index: int): int:
+    ret ((text as void*) as u8*)[index] as int
+end
+
+pub func IsUtf8(text: str): bool:
+    mut i := 0
+    until i < text.len():
+        b := ByteAt(text, i)
+        mut width := 1
+        if b >= 194 and b <= 223: width = 2
+        else b >= 224 and b <= 239: width = 3
+        else b >= 240 and b <= 244: width = 4
+        else b >= 128: ret false
+        end
+        if i + width > text.len(): ret false end
+        mut j := 1
+        until j < width:
+            c := ByteAt(text, i + j)
+            if c < 128 or c > 191: ret false end
+            j += 1
+        end
+        if width >= 3:
+            second := ByteAt(text, i + 1)
+            if b == 224 and second < 160: ret false end
+            if b == 237 and second > 159: ret false end
+            if b == 240 and second < 144: ret false end
+            if b == 244 and second > 143: ret false end
+        end
+        i += width
+    end
+    ret true
+end
+
+pub func WithoutBom(text: str): str:
+    if text.len() >= 3 and ByteAt(text, 0) == 239 and ByteAt(text, 1) == 187 and ByteAt(text, 2) == 191:
+        ret text.substr(3, text.len() - 3)
+    end
+    ret text
+end

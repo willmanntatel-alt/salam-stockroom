@@ -1,5 +1,7 @@
 package csv_reader
 
+include text_encoding "text_encoding.salam"
+
 pub struct Row:
     pub fields: Vector<str> = Vector {}
 end
@@ -17,8 +19,7 @@ pub func Read(raw: str): Table:
     mut field := ""
     mut state := 0
     mut i := 0
-    mut text := raw
-    if text.substr(0, 3) == "\xEF\xBB\xBF": text = text.substr(3, text.len() - 3) end
+    text := text_encoding.WithoutBom(raw)
     until i < text.len():
         c := text.substr(i, 1)
         if state == 2:
@@ -54,6 +55,7 @@ pub func Read(raw: str): Table:
                 state = 1
             end
         end
+        if field.len() > 256: ret Table { error = "a CSV field exceeds 256 bytes" } end
         i += 1
     end
     if state == 2: ret Table { error = "unclosed quoted field" } end

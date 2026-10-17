@@ -5,6 +5,7 @@ import fmt
 include models "models.salam"
 include numbers "numbers.salam"
 include csv_reader "csv_reader.salam"
+include text_encoding "text_encoding.salam"
 
 func ErrorAt(row: int, detail: str): models.Inventory:
     ret models.Inventory { error = "row ".concat(fmt.Int(row as i64)).concat(": ").concat(detail) }
@@ -16,6 +17,7 @@ end
 
 pub func Load(text: str): models.Inventory:
     if text.len() > 2097152: ret models.Inventory { error = "input exceeds 2 MiB" } end
+    if not text_encoding.IsUtf8(text): ret models.Inventory { error = "input is not valid UTF-8" } end
     table := csv_reader.Read(text)
     if table.error.len() > 0: ret models.Inventory { error = table.error } end
     if table.rows.len() < 2: ret models.Inventory { error = "a header and at least one stock row are required" } end

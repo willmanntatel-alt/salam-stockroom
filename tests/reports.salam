@@ -1,0 +1,26 @@
+import testing
+include models "../src/models.salam"
+include planner "../src/planner.salam"
+include budget "../src/budget.salam"
+include csv_report "../src/csv_report.salam"
+include text_report "../src/text_report.salam"
+include arguments "../src/arguments.salam"
+
+func main:
+    mut items := Vector {} as Vector<models.Item>
+    items.push(models.Item { sku = "=1+1", weekly_demand = 1, lead_days = 7, cover_days = 14, pack_size = 1, unit_cost_minor = 105 })
+    plan := budget.Allocate(planner.Build(items), 210, true)
+    csv := csv_report.Render(plan)
+    testing.AssertTrue(csv.find("\"'=1+1\"") >= 0)
+    testing.AssertTrue(text_report.Render(plan).find("Allocated cost: 2.10") >= 0)
+    mut argv := Vector {} as Vector<str>
+    argv.push("stockroom")
+    argv.push("in.csv")
+    argv.push("--budget-minor")
+    argv.push("0")
+    testing.AssertTrue(arguments.Parse(argv).limited)
+    argv.push("--budget-minor")
+    argv.push("1")
+    testing.AssertTrue(arguments.Parse(argv).error.len() > 0)
+    println "reports: PASS"
+end
