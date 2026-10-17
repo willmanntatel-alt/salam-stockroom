@@ -1,0 +1,40 @@
+package models
+
+// Counts and money use bounded nonnegative integers, never floating point.
+pub struct Item:
+    pub sku: str = ""
+    pub on_hand: i64 = 0
+    pub reserved: i64 = 0
+    pub inbound: i64 = 0
+    pub weekly_demand: i64 = 0
+    pub lead_days: i64 = 0
+    pub cover_days: i64 = 0
+    pub safety_stock: i64 = 0
+    pub pack_size: i64 = 1
+    pub unit_cost_minor: i64 = 0
+end
+
+pub struct Suggestion:
+    pub item: Item = Item {}
+    pub available: i64 = 0
+    pub position: i64 = 0
+    pub reorder_point: i64 = 0
+    pub target: i64 = 0
+    pub wanted: i64 = 0
+    pub allocated: i64 = 0
+    pub cost_minor: i64 = 0
+    pub priority: int = 0
+end
+
+pub struct Inventory:
+    pub items: Vector<Item> = Vector {}
+    pub error: str = ""
+end
+
+pub struct Plan:
+    pub rows: Vector<Suggestion> = Vector {}
+    pub wanted_cost_minor: i64 = 0
+    pub allocated_cost_minor: i64 = 0
+    pub budget_minor: i64 = 0
+    pub limited: bool = false
+end

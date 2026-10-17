@@ -1,0 +1,13 @@
+import testing
+include numbers "../src/numbers.salam"
+
+func main:
+    testing.AssertEqInt(numbers.Natural(" 42 ", 100).value as int, 42)
+    testing.AssertTrue(numbers.Natural("-1", 100).error.len() > 0)
+    testing.AssertTrue(numbers.Natural("1.0", 100).error.len() > 0)
+    testing.AssertTrue(numbers.Natural("10000000000000000000000", 100).error.len() > 0)
+    testing.AssertEqInt(numbers.CeilDiv(15, 7) as int, 3)
+    testing.AssertEqInt(numbers.CeilDiv(14, 7) as int, 2)
+    testing.AssertEqStr(numbers.Money(105), "1.05")
+    println "numbers: PASS"
+end

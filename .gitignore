@@ -1,0 +1,6 @@
+/build/
+*.exe
+*.o
+*.c
+__pycache__/
+.DS_Store

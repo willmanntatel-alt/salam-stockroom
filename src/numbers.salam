@@ -1,0 +1,37 @@
+package numbers
+
+import str
+import fmt
+
+pub struct Parsed:
+    pub value: i64 = 0
+    pub error: str = ""
+end
+
+// Checking before multiplication prevents overflow even on hostile input.
+pub func Natural(raw: str, maximum: i64): Parsed:
+    text := str.Trim(raw)
+    if text.len() == 0: ret Parsed { error = "must be a nonnegative integer" } end
+    mut result := 0 as i64
+    repeat text.len() in i:
+        digit := "0123456789".find(text.substr(i, 1))
+        if digit < 0: ret Parsed { error = "must contain decimal digits only" } end
+        if result > (maximum - digit as i64) / 10:
+            ret Parsed { error = "exceeds the supported maximum" }
+        end
+        result = result * 10 + digit as i64
+    end
+    if result > maximum: ret Parsed { error = "exceeds the supported maximum" } end
+    ret Parsed { value = result }
+end
+
+pub func CeilDiv(n: i64, d: i64): i64:
+    if n <= 0: ret 0 end
+    ret n / d + (n % d > 0 ? 1 : 0)
+end
+
+pub func Money(minor: i64): str:
+    cents := minor % 100
+    prefix := cents < 10 ? "0" : ""
+    ret fmt.Int(minor / 100).concat(".").concat(prefix).concat(fmt.Int(cents))
+end
