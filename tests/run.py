@@ -62,6 +62,11 @@ class StockroomCLI(unittest.TestCase):
         rows = self.parsed(HEADER + "\nA,0,0,0,1,1,14,0,1,10", "--budget-minor", "0")
         self.assertEqual(rows[0]["allocated"], "0")
 
+    def test_large_values_preserve_64_bit_costs(self):
+        rows = self.parsed(HEADER + "\nMAX,0,0,0,1000000,366,366,1000000,1000000,1000000")
+        self.assertEqual(int(rows[0]["wanted"]), 54000000)
+        self.assertEqual(int(rows[0]["cost_minor"]), 54000000000000)
+
     def test_inbound_and_zero_demand(self):
         rows = self.parsed(HEADER + "\nA,0,0,100,7,7,14,0,1,1\nB,0,0,0,0,7,14,0,1,1")
         self.assertEqual([r["wanted"] for r in rows], ["0", "0"])
