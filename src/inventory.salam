@@ -1,0 +1,59 @@
+package inventory
+
+import str
+import fmt
+include models "models.salam"
+include numbers "numbers.salam"
+include csv_reader "csv_reader.salam"
+
+func ErrorAt(row: int, detail: str): models.Inventory:
+    ret models.Inventory { error = "row ".concat(fmt.Int(row as i64)).concat(": ").concat(detail) }
+end
+
+pub func Header(): str:
+    ret "sku,on_hand,reserved,inbound,weekly_demand,lead_days,cover_days,safety_stock,pack_size,unit_cost_minor"
+end
+
+pub func Load(text: str): models.Inventory:
+    if text.len() > 2097152: ret models.Inventory { error = "input exceeds 2 MiB" } end
+    table := csv_reader.Read(text)
+    if table.error.len() > 0: ret models.Inventory { error = table.error } end
+    if table.rows.len() < 2: ret models.Inventory { error = "a header and at least one stock row are required" } end
+    expected := Header().split(",")
+    header := table.rows.get(0).fields
+    if header.len() != 10: ret ErrorAt(1, "expected the 10 documented columns") end
+    repeat 10 in j:
+        if header.get(j) != expected.get(j): ret ErrorAt(1, "unexpected header; use the documented order") end
+    end
+    mut result := models.Inventory {}
+    mut r := 1
+    until r < table.rows.len():
+        fields := table.rows.get(r).fields
+        if fields.len() != 10: ret ErrorAt(r + 1, "expected exactly 10 columns") end
+        sku := str.Trim(fields.get(0))
+        if sku.len() == 0 or sku.len() > 96: ret ErrorAt(r + 1, "SKU must contain 1 to 96 UTF-8 bytes") end
+        repeat sku.len() in k:
+            b := ((sku as void*) as u8*)[k]
+            if b < 32 or b == 127: ret ErrorAt(r + 1, "SKU must not contain control characters") end
+        end
+        repeat result.items.len() in k:
+            if result.items.get(k).sku == sku: ret ErrorAt(r + 1, "duplicate SKU") end
+        end
+        mut values := Vector {} as Vector<i64>
+        mut j := 1
+        until j < 10:
+            bound := j == 5 or j == 6 ? 366 : 1000000
+            parsed := numbers.Natural(fields.get(j), bound as i64)
+            if parsed.error.len() > 0: ret ErrorAt(r + 1, expected.get(j).concat(" ").concat(parsed.error)) end
+            values.push(parsed.value)
+            j += 1
+        end
+        if values.get(1) > values.get(0): ret ErrorAt(r + 1, "reserved cannot exceed on_hand") end
+        if values.get(7) == 0: ret ErrorAt(r + 1, "pack_size must be positive") end
+        if values.get(8) == 0: ret ErrorAt(r + 1, "unit_cost_minor must be positive") end
+        if values.get(5) < values.get(4): ret ErrorAt(r + 1, "cover_days must be at least lead_days") end
+        result.items.push(models.Item { sku = sku, on_hand = values.get(0), reserved = values.get(1), inbound = values.get(2), weekly_demand = values.get(3), lead_days = values.get(4), cover_days = values.get(5), safety_stock = values.get(6), pack_size = values.get(7), unit_cost_minor = values.get(8) })
+        r += 1
+    end
+    ret result
+end

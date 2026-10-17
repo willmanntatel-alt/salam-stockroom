@@ -1,0 +1,19 @@
+import testing
+include inventory "../src/inventory.salam"
+include csv_reader "../src/csv_reader.salam"
+
+func main:
+    good := inventory.Header().concat("\r\n\"Case, blue\",10,2,0,7,7,14,2,6,105\r\n")
+    loaded := inventory.Load(good)
+    testing.AssertEqStr(loaded.error, "")
+    testing.AssertEqInt(loaded.items.len(), 1)
+    testing.AssertEqStr(loaded.items.get(0).sku, "Case, blue")
+    testing.AssertTrue(csv_reader.Read("a,\"bad").error.len() > 0)
+    testing.AssertTrue(csv_reader.Read("\"a\"x,b").error.len() > 0)
+    testing.AssertTrue(csv_reader.Read("a\"x,b").error.len() > 0)
+    testing.AssertTrue(inventory.Load(inventory.Header().concat("\nSKU,1,2,0,1,1,2,0,1,100")).error.len() > 0)
+    testing.AssertTrue(inventory.Load(inventory.Header().concat("\nSKU,1,0,0,1,1,2,0,0,100")).error.len() > 0)
+    doubled := csv_reader.Read("\"a\"\"b\",c\n")
+    testing.AssertEqStr(doubled.rows.get(0).fields.get(0), "a\"b")
+    println "inventory: PASS"
+end

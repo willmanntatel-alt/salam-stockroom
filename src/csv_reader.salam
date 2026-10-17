@@ -1,0 +1,66 @@
+package csv_reader
+
+pub struct Row:
+    pub fields: Vector<str> = Vector {}
+end
+
+pub struct Table:
+    pub rows: Vector<Row> = Vector {}
+    pub error: str = ""
+end
+
+// Four states: field start, plain field, quoted field, after closing quote.
+// In particular, a bare quote and junk following a closing quote are errors.
+pub func Read(raw: str): Table:
+    mut result := Table {}
+    mut fields := Vector {} as Vector<str>
+    mut field := ""
+    mut state := 0
+    mut i := 0
+    mut text := raw
+    if text.substr(0, 3) == "\xEF\xBB\xBF": text = text.substr(3, text.len() - 3) end
+    until i < text.len():
+        c := text.substr(i, 1)
+        if state == 2:
+            if c == `"`: state = 3 else: field = field.concat(c) end
+        else:
+            if c == `"`:
+                if state == 0:
+                    state = 2
+                else state == 3:
+                    field = field.concat(`"`)
+                    state = 2
+                else:
+                    ret Table { error = "quote inside an unquoted field" }
+                end
+            else c == ",":
+                fields.push(field)
+                field = ""
+                state = 0
+                if fields.len() >= 10: ret Table { error = "too many CSV columns" } end
+            else c == "\n" or c == "\r":
+                if field.len() > 0 or fields.len() > 0 or state != 0:
+                    fields.push(field)
+                    result.rows.push(Row { fields = fields })
+                    fields = Vector {} as Vector<str>
+                    field = ""
+                    state = 0
+                    if result.rows.len() > 1001: ret Table { error = "at most 1000 stock rows are supported" } end
+                end
+                if c == "\r" and i + 1 < text.len() and text.substr(i + 1, 1) == "\n": i += 1 end
+            else:
+                if state == 3: ret Table { error = "unexpected text after a closing quote" } end
+                field = field.concat(c)
+                state = 1
+            end
+        end
+        i += 1
+    end
+    if state == 2: ret Table { error = "unclosed quoted field" } end
+    if field.len() > 0 or fields.len() > 0 or state != 0:
+        fields.push(field)
+        result.rows.push(Row { fields = fields })
+    end
+    if result.rows.len() > 1001: ret Table { error = "at most 1000 stock rows are supported" } end
+    ret result
+end
