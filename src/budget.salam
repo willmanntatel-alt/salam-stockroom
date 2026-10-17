@@ -1,0 +1,29 @@
+package budget
+
+include models "models.salam"
+
+pub func Allocate(source: models.Plan, limit: i64, limited: bool): models.Plan:
+    mut result := models.Plan { wanted_cost_minor = source.wanted_cost_minor, budget_minor = limit, limited = limited }
+    // Copy the rows so allocating never changes the caller's suggestions.
+    repeat source.rows.len() in i: result.rows.push(source.rows.get(i)) end
+    mut remaining := limit
+    mut priority := 2
+    until priority > 0:
+        repeat result.rows.len() in i:
+            row := result.rows.ref(i)
+            if row.priority != priority: continue end
+            mut units := row.wanted
+            if limited:
+                pack_cost := row.item.pack_size * row.item.unit_cost_minor
+                affordable := (remaining / pack_cost) * row.item.pack_size
+                if affordable < units: units = affordable end
+            end
+            row.allocated = units
+            row.cost_minor = units * row.item.unit_cost_minor
+            result.allocated_cost_minor += row.cost_minor
+            if limited: remaining -= row.cost_minor end
+        end
+        priority -= 1
+    end
+    ret result
+end

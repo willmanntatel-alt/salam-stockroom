@@ -1,0 +1,29 @@
+package planner
+
+include models "models.salam"
+include numbers "numbers.salam"
+
+pub func Suggest(item: models.Item): models.Suggestion:
+    available := item.on_hand - item.reserved
+    position := available + item.inbound
+    reorder := numbers.CeilDiv(item.weekly_demand * item.lead_days, 7) + item.safety_stock
+    target := numbers.CeilDiv(item.weekly_demand * item.cover_days, 7) + item.safety_stock
+    mut row := models.Suggestion { item = item, available = available, position = position, reorder_point = reorder, target = target }
+    // Inbound stock is counted once. Equality triggers replenishment only
+    // when the target is larger, so zero-demand/zero-safety items stay quiet.
+    if position <= reorder and target > position:
+        row.wanted = numbers.CeilDiv(target - position, item.pack_size) * item.pack_size
+        row.priority = available < numbers.CeilDiv(item.weekly_demand * item.lead_days, 7) ? 2 : 1
+    end
+    ret row
+end
+
+pub func Build(items: Vector<models.Item>): models.Plan:
+    mut plan := models.Plan {}
+    repeat items.len() in i:
+        row := Suggest(items.get(i))
+        plan.rows.push(row)
+        plan.wanted_cost_minor += row.wanted * row.item.unit_cost_minor
+    end
+    ret plan
+end

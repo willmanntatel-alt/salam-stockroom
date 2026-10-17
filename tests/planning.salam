@@ -1,0 +1,32 @@
+import testing
+include models "../src/models.salam"
+include planner "../src/planner.salam"
+include budget "../src/budget.salam"
+
+func main:
+    item := models.Item { sku = "CASE", on_hand = 10, reserved = 2, inbound = 0, weekly_demand = 7, lead_days = 7, cover_days = 14, safety_stock = 2, pack_size = 6, unit_cost_minor = 105 }
+    suggestion := planner.Suggest(item)
+    testing.AssertEqInt(suggestion.position as int, 8)
+    testing.AssertEqInt(suggestion.reorder_point as int, 9)
+    testing.AssertEqInt(suggestion.target as int, 16)
+    testing.AssertEqInt(suggestion.wanted as int, 12)
+    mut arriving := item
+    arriving.inbound = 8
+    testing.AssertEqInt(planner.Suggest(arriving).wanted as int, 0)
+    mut rows := Vector {} as Vector<models.Item>
+    rows.push(item)
+    mut urgent := item
+    urgent.sku = "URGENT"
+    urgent.on_hand = 2
+    urgent.reserved = 2
+    rows.push(urgent)
+    original := planner.Build(rows)
+    constrained := budget.Allocate(original, 1260, true)
+    testing.AssertEqInt(constrained.allocated_cost_minor as int, 1260)
+    testing.AssertEqInt(constrained.rows.get(0).allocated as int, 0)
+    testing.AssertEqInt(constrained.rows.get(1).allocated as int, 12)
+    testing.AssertEqInt(original.rows.get(1).allocated as int, 0)
+    testing.AssertEqInt(budget.Allocate(original, 0, true).allocated_cost_minor as int, 0)
+    testing.AssertEqInt(budget.Allocate(original, 0, false).rows.get(0).allocated as int, 12)
+    println "planning: PASS"
+end
