@@ -1,0 +1,23 @@
+package text_report
+
+import fmt
+include models "models.salam"
+include numbers "numbers.salam"
+
+pub func Render(plan: models.Plan): str:
+    mut out := "SALAM STOCKROOM | replenishment review\n"
+    out = out.concat("Estimates from your demand inputs; inbound arrival dates are not modeled.\n\n")
+    out = out.concat("SKU | available / position | reorder / target | wanted / allocated | cost\n")
+    repeat plan.rows.len() in i:
+        row := plan.rows.get(i)
+        label := row.priority == 2 ? "URGENT" : (row.priority == 1 ? "REORDER" : "OK")
+        out = out.concat(row.item.sku).concat(" [").concat(label).concat("] | ").concat(fmt.Int(row.available)).concat(" / ").concat(fmt.Int(row.position)).concat(" | ").concat(fmt.Int(row.reorder_point)).concat(" / ").concat(fmt.Int(row.target)).concat(" | ").concat(fmt.Int(row.wanted)).concat(" / ").concat(fmt.Int(row.allocated)).concat(" | ").concat(numbers.Money(row.cost_minor)).concat("\n")
+    end
+    out = out.concat("\nSuggested cost: ").concat(numbers.Money(plan.wanted_cost_minor)).concat("\nAllocated cost: ").concat(numbers.Money(plan.allocated_cost_minor)).concat("\n")
+    if plan.limited:
+        out = out.concat("Budget: ").concat(numbers.Money(plan.budget_minor)).concat("\nUnspent: ").concat(numbers.Money(plan.budget_minor - plan.allocated_cost_minor)).concat("\n")
+    else:
+        out = out.concat("Budget: unlimited\n")
+    end
+    ret out.concat("Currency is not converted. Money uses the input's single currency.\n")
+end

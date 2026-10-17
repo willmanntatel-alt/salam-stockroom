@@ -1,0 +1,46 @@
+package arguments
+
+include numbers "numbers.salam"
+
+pub struct Options:
+    pub path: str = ""
+    pub csv: bool = false
+    pub limited: bool = false
+    pub budget_minor: i64 = 0
+    pub help: bool = false
+    pub error: str = ""
+end
+
+pub func Parse(argv: Vector<str>): Options:
+    mut result := Options {}
+    mut i := 1
+    until i < argv.len():
+        arg := argv.get(i)
+        if arg == "--help" or arg == "-h":
+            result.help = true
+        else arg == "--csv":
+            if result.csv: ret Options { error = "--csv may be given only once" } end
+            result.csv = true
+        else arg == "--budget-minor":
+            if result.limited: ret Options { error = "budget may be given only once" } end
+            i += 1
+            if i >= argv.len(): ret Options { error = "--budget-minor needs a value" } end
+            parsed := numbers.Natural(argv.get(i), 1000000000000 as i64)
+            if parsed.error.len() > 0: ret Options { error = "budget ".concat(parsed.error) } end
+            result.budget_minor = parsed.value
+            result.limited = true
+        else arg.len() > 0 and arg.substr(0, 1) == "-":
+            ret Options { error = "unknown option: ".concat(arg) }
+        else:
+            if result.path.len() > 0: ret Options { error = "provide exactly one input CSV path" } end
+            result.path = arg
+        end
+        i += 1
+    end
+    if not result.help and result.path.len() == 0: result.error = "provide an input CSV path" end
+    ret result
+end
+
+pub func Help(): str:
+    ret "Salam Stockroom 1.0\nUsage: stockroom INPUT.csv [--budget-minor INTEGER] [--csv]\n\nReads a local inventory CSV and prints a replenishment plan.\nAll prices and budgets are integer minor units in ONE currency.\nDefault output is text; --csv prints spreadsheet-safe CSV.\nUrgent stock is allocated first; ties keep input order.\nNo files are overwritten and no network calls are made.\n"
+end

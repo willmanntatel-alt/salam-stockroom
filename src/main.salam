@@ -1,0 +1,32 @@
+import os
+import io
+import os.process
+include arguments "arguments.salam"
+include inventory "inventory.salam"
+include planner "planner.salam"
+include budget "budget.salam"
+include csv_report "csv_report.salam"
+include text_report "text_report.salam"
+
+func Fail(message: str):
+    io.EPrintln("stockroom: ".concat(message))
+    process.ExitNow(2)
+end
+
+func main:
+    options := arguments.Parse(os.Args())
+    if options.error.len() > 0: Fail(options.error) end
+    if options.help:
+        print arguments.Help()
+        ret
+    end
+    info := os.Stat(options.path)
+    if not info.exists or info.is_dir: Fail("input is not a readable regular file") end
+    if info.size > 2097152: Fail("input exceeds 2 MiB") end
+    text := io.ReadFile(options.path)
+    if text.len() as i64 != info.size: Fail("input could not be read completely or contains a NUL byte") end
+    loaded := inventory.Load(text)
+    if loaded.error.len() > 0: Fail(loaded.error) end
+    plan := budget.Allocate(planner.Build(loaded.items), options.budget_minor, options.limited)
+    if options.csv: print csv_report.Render(plan) else: print text_report.Render(plan) end
+end

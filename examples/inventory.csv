@@ -1,0 +1,5 @@
+sku,on_hand,reserved,inbound,weekly_demand,lead_days,cover_days,safety_stock,pack_size,unit_cost_minor
+PHONE-CASE,10,2,0,7,7,14,2,6,105
+USB-CABLE,2,2,0,7,7,14,2,6,250
+DESK-LAMP,30,0,10,7,7,21,3,4,1500
+"BAG, BLUE",4,0,2,4,7,14,1,5,850

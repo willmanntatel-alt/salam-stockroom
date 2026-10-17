@@ -1,0 +1,22 @@
+package csv_report
+
+import str
+import fmt
+include models "models.salam"
+
+func Cell(value: str): str:
+    mut safe := value
+    // A CSV consumer may evaluate spreadsheet formulas even in quoted cells.
+    if safe.len() > 0 and "=+-@".find(safe.substr(0, 1)) >= 0: safe = "'".concat(safe) end
+    ret `"`.concat(str.Replace(safe, `"`, `""`)).concat(`"`)
+end
+
+pub func Render(plan: models.Plan): str:
+    mut out := "sku,available,position,reorder_point,target,wanted,allocated,pack_size,unit_cost_minor,cost_minor,priority\r\n"
+    repeat plan.rows.len() in i:
+        row := plan.rows.get(i)
+        line := Cell(row.item.sku).concat(",").concat(fmt.Int(row.available)).concat(",").concat(fmt.Int(row.position)).concat(",").concat(fmt.Int(row.reorder_point)).concat(",").concat(fmt.Int(row.target)).concat(",").concat(fmt.Int(row.wanted)).concat(",").concat(fmt.Int(row.allocated)).concat(",").concat(fmt.Int(row.item.pack_size)).concat(",").concat(fmt.Int(row.item.unit_cost_minor)).concat(",").concat(fmt.Int(row.cost_minor)).concat(",").concat(fmt.Int(row.priority))
+        out = out.concat(line).concat("\r\n")
+    end
+    ret out
+end
